@@ -1,8 +1,8 @@
 {
   "name": "bace-tdbsolution",
   "private": true,
-  "version": "0.1.0",
-  "description": "BACE-TDBSOLUTION — Multi-tenant CRM SaaS",
+  "version": "0.2.0",
+  "description": "B-ACE SME — multi-tenant CRM (Next.js + NestJS)",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -11,24 +11,16 @@
     "dev": "npm run dev --workspaces --if-present",
     "dev:api": "npm run dev -w @bace/api",
     "dev:web": "npm run dev -w @bace/web",
-    "build": "npm run build -w @bace/shared && npm run build -w @bace/web",
-    "build:web": "npm run build -w @bace/web",
-    "build:api": "npm run build -w @bace/api",
-    "build:all": "npm run build --workspaces --if-present",
+    "build": "npm run build -w @bace/shared && npm run build -w @bace/api && npm run build -w @bace/web",
+    "test": "npm run test -w @bace/api",
     "lint": "npm run lint --workspaces --if-present",
     "db:generate": "npm run prisma:generate -w @bace/api",
     "db:migrate": "npm run prisma:migrate -w @bace/api",
     "db:seed": "npm run prisma:seed -w @bace/api",
-    "docker:up": "docker compose up -d",
+    "docker:up": "docker compose up -d postgres",
     "docker:down": "docker compose down"
   },
-  "dependencies": {
-    "next": "13.5.6",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "typescript": "^5.7.3"
-  },
   "engines": {
-    "node": ">=16.14.0"
+    "node": ">=20"
   }
 }

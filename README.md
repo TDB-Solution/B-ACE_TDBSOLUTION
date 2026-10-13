@@ -1,82 +1,49 @@
-# BACE-TDBSOLUTION
+# B-ACE SME
 
-Multi-tenant CRM SaaS — Phase 1 (tenant-ready). **Target runtime: Node.js 16.20+** (cPanel max).
+CRM nội bộ, chuẩn bị cho multi-tenant. Giao diện port từ B-ACE SME. Stack: Next.js, NestJS, PostgreSQL.
 
-## Stack
-
-- **Web:** Next.js **13.5** + React 18 + TanStack Query + Framer Motion + Tailwind 3
-- **API:** NestJS **10** + Prisma **5** + PostgreSQL (RLS-ready)
-- **Infra local:** Docker Compose → Postgres 16, Redis 7, MinIO
-- **cPanel entry:** `app.js` (web), `api.js` (API, optional second Node app)
-- **Static fallback:** `index.html` (LiteSpeed hết 404 khi Node chưa chạy)
-
-## Quick start (local)
+## Chạy local
 
 ```bash
 cp .env.example .env
+docker compose up -d postgres
 npm install
-npm run docker:up
-npm run db:generate -w @bace/api
-cp .env apps/api/.env
-cd apps/api && npx prisma migrate deploy && cd ../..
+npm run build -w @bace/shared
+npm run db:generate
+npm run db:migrate
 npm run db:seed
-
 npm run dev:api
 npm run dev:web
 ```
 
-- Web: http://localhost:3000  
-- API: http://localhost:3001/api/health  
-- Postgres host port: **5433**  
-- Seed: `admin@bace.local` / `Admin@123456`
+Web: http://localhost:3000  
+API: http://localhost:3001/api  
+OpenAPI: http://localhost:3001/docs  
 
-## Deploy on cPanel (Node 16.20.2, UI hạn chế)
+Đăng nhập demo: `admin@b-ace.vn` / `password`  
+Sales thử phạm vi dữ liệu riêng: `lan@b-ace.vn` / `password`
 
-Host không có virtualenv/SSH? Dùng nút trên **Setup Node.js App**.
+## Đã có trong bản này
 
-### Env (bắt buộc)
+CRM chạy trên PostgreSQL, không còn dữ liệu mẫu trên giao diện.
 
-| Name | Value |
-|------|--------|
-| `NODE_ENV` | `development` (hoặc `production`) |
-| `NPM_CONFIG_PRODUCTION` | `false` |
-| `NEXT_PUBLIC_API_URL` | `https://api-bace.tdbsolution.com/api` |
+- Khách hàng: tạo, sửa, ghi chú, chuyển cá nhân sang doanh nghiệp, cảnh báo trùng số điện thoại hoặc email, nhập CSV.
+- Dự án: menu riêng, pipeline kéo thả theo giai đoạn, lý do khi thua, tệp tải lên xem và tải xuống.
+- Báo giá: sửa từng hạng mục, xuất PDF qua hộp in của trình duyệt.
+- Công việc và lịch dùng chung một nguồn. Chuông nhắc việc quá hạn, hôm nay và ngày mai, có rung và tiếng chuông.
+- Sales chỉ thấy hồ sơ được giao. Admin và quản lý thấy cả tenant.
+- Tìm kiếm khách, dự án và báo giá. Nhật ký cuộc gọi, cuộc họp và ghi chú.
 
-### Node app
+Postgres map cổng **5433** để tránh đụng Postgres local đang chiếm 5432.
 
-- Node: **16.20.2**
-- Application root / URL: `bace-tdbsolution.tdbsolution.com`
-- Startup file: **`app.js`**
+## Tenant
 
-### Thứ tự nút trên UI
+Mọi query nghiệp vụ đi qua `scope(tenantId)` và `PrismaService.withTenant`. `tenant_id` lấy từ JWT, không hard-code một tenant. Phase 1 seed một tenant `bace-internal`. RLS nằm ở `apps/api/prisma/rls.sql` như lớp bảo vệ thêm.
 
-1. **Pull** code mới từ GitHub (`huy-dev`)
-2. **SAVE** env
-3. **Run NPM Install** — đợi xong; trong File Manager, `node_modules` phải có folder `next`, `.bin`, … (không chỉ 1 file `package.json`)
-4. Chạy script NPM **`build`** (root) — giờ chỉ build **shared + web** (không build Nest API)
-5. **Restart** application
+Redis và BullMQ chưa bật. Chỉ thêm khi có job thật (email, import, đồng bộ API).
 
-> Nếu Install xong mà `node_modules` vẫn gần trống → host chặn/timeout npm; khi đó cần zip từ Linux hoặc VPS (không commit `node_modules` lên GitHub).
+## Module
 
-### API (second Node app)
-
-- Startup: **`api.js`**
-- Script: `build:api` sau khi có Postgres
-- Env: `DATABASE_URL`, `JWT_*`, `WEB_URL`
-
-## Architecture invariants
-
-1. Every business query requires `tenant_id`.
-2. `Tenant.dbStrategy` ready for Free / Growth / Enterprise later.
-3. Auth = JWT + RBAC per membership.
-
-## Monorepo layout
-
-```
-app.js              cPanel Next startup
-api.js              cPanel Nest startup
-index.html          LiteSpeed static fallback
-apps/api            NestJS API
-apps/web            Next.js UI
-packages/shared     Shared types + permissions
-```
+- `apps/web` — shell, đăng nhập, tổng quan, khách hàng, Kanban cơ hội, công việc, lịch, báo cáo, báo giá, người dùng
+- `apps/api` — auth JWT, RBAC, customers, opportunities, quotes, users, tasks, dashboard
+- `packages/shared` — Zod và công thức giá báo giá

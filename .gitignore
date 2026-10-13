@@ -8,4 +8,7 @@ dist
 .DS_Store
 coverage
 .prisma
-apps/api/prisma/migrations/**/migration_lock.toml.bak
+apps/api/dist
+apps/api/uploads
+packages/shared/dist
+*.tsbuildinfo

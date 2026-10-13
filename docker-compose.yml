@@ -1,56 +1,45 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: bace-postgres
-    restart: unless-stopped
     environment:
       POSTGRES_USER: bace
-      POSTGRES_PASSWORD: bace_secret
-      POSTGRES_DB: bace_crm
+      POSTGRES_PASSWORD: bace
+      POSTGRES_DB: bace
     ports:
       - "5433:5432"
     volumes:
-      - bace_pg_data:/var/lib/postgresql/data
+      - bace_pg:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U bace -d bace_crm"]
+      test: ["CMD-SHELL", "pg_isready -U bace -d bace"]
       interval: 5s
       timeout: 5s
       retries: 10
 
-  redis:
-    image: redis:7-alpine
-    container_name: bace-redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    volumes:
-      - bace_redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
-  minio:
-    image: quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z
-    container_name: bace-minio
-    restart: unless-stopped
-    command: server /data --console-address ":9001"
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
     environment:
-      MINIO_ROOT_USER: bace_minio
-      MINIO_ROOT_PASSWORD: bace_minio_secret
+      DATABASE_URL: postgresql://bace:bace@postgres:5432/bace?schema=public
+      JWT_SECRET: change-me-in-production
+      API_PORT: 3001
+      WEB_ORIGIN: http://localhost:3000
     ports:
-      - "9000:9000"
-      - "9001:9001"
-    volumes:
-      - bace_minio_data:/data
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:3001/api
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
 
 volumes:
-  bace_pg_data:
-  bace_redis_data:
-  bace_minio_data:
+  bace_pg:
